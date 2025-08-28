@@ -1,6 +1,6 @@
 # Import python packages
 import streamlit as st
-import requests                          # must be at the top
+import requests
 from snowflake.snowpark.functions import col
 
 # Write directly to the app
@@ -14,9 +14,19 @@ st.write("The name on your Smoothie will be:", name_on_order)
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# Get fruit options and convert to a Python list of strings
-fruits_df = session.table("smoothies.public.fruit_options").select(col("FRUIT_NAME"))
-fruit_options = [row["FRUIT_NAME"] for row in fruits_df.collect()]
+# --- LAB STEP: show FRUIT_NAME + SEARCH_ON and pause here ---
+my_dataframe = (
+    session.table("smoothies.public.fruit_options")
+           .select(col("FRUIT_NAME"), col("SEARCH_ON"))
+)
+
+st.dataframe(data=my_dataframe, use_container_width=True)
+st.stop()   # stop here so we can focus on verifying the dataframe
+
+# ----------------- code below will not run yet -----------------
+
+# Build options list from FRUIT_NAME (GUI uses friendly labels)
+fruit_options = [row["FRUIT_NAME"] for row in my_dataframe.collect()]
 
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
@@ -24,17 +34,18 @@ ingredients_list = st.multiselect(
     max_selections=5
 )
 
-# Always define this (even if no selection)
 ingredients_string = ""
 
 if ingredients_list:
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
-        st.subheader(fruit_chosen + ' Nutrition Information')
-        smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
+        st.subheader(fruit_chosen + " Nutrition Information")
+        # NOTE: in a later step we will switch to SEARCH_ON for the API call
+        smoothiefroot_response = requests.get(
+            "https://my.smoothiefroot.com/api/fruit/" + fruit_chosen
+        )
         st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
 
-# Build and run insert only when the user clicks
 time_to_insert = st.button("Submit Order")
 
 if time_to_insert:
