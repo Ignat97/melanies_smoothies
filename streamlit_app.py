@@ -15,27 +15,19 @@ st.write("The name on your Smoothie will be:", name_on_order)
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# ---------------- LAB STEP: bring in SEARCH_ON and convert to pandas ----------------
-# Pull FRUIT_NAME + SEARCH_ON from FRUIT_OPTIONS
+# ---------------- Pull fruit options ----------------
 my_dataframe = (
     session.table("smoothies.public.fruit_options")
            .select(col("FRUIT_NAME"), col("SEARCH_ON"))
 )
 
-# Convert Snowpark DF -> pandas DF so we can use .loc later
+# Convert Snowpark DF -> pandas DF
 pd_df = my_dataframe.to_pandas()
 
-# Show it so we can verify what’s feeding the multiselect
+# Show both FRUIT_NAME + SEARCH_ON so we can confirm mapping
 st.dataframe(pd_df, use_container_width=True)
 
-# Per the lab, pause here to verify. The rest of the app is below.
-st.stop()
-
-# ==============================
-# code below won’t run until you remove st.stop() above
-# ==============================
-
-# Build the multiselect options from the friendly names
+# ---------------- Multiselect ----------------
 fruit_options = pd_df["FRUIT_NAME"].tolist()
 
 ingredients_list = st.multiselect(
@@ -44,25 +36,27 @@ ingredients_list = st.multiselect(
     max_selections=5
 )
 
-# Always define this (even if no selection)
+# ---------------- Build smoothie ----------------
 ingredients_string = ""
 
 if ingredients_list:
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
 
-        # Look up the API-friendly value from SEARCH_ON
-        match = pd_df.loc[pd_df["FRUIT_NAME"] == fruit_chosen, "SEARCH_ON"]
-        search_on = match.iloc[0] if not match.empty else fruit_chosen
+        # Look up the SEARCH_ON value for the chosen fruit
+        search_on = pd_df.loc[pd_df["FRUIT_NAME"] == fruit_chosen, "SEARCH_ON"].iloc[0]
 
-        st.subheader(f"{fruit_chosen} Nutrition Information")
+        # Show what’s happening (lab requirement)
+        st.write("The search value for", fruit_chosen, "is", search_on, ".")
 
-        # Call the API using the SEARCH_ON value
-        # (exact string per lab; no slugging unless later instructed)
-        resp = requests.get("https://my.smoothiefroot.com/api/fruit/" + search_on)
-        st.dataframe(data=resp.json(), use_container_width=True)
+        # Show nutrition info using SEARCH_ON in the API call
+        st.subheader(fruit_chosen + " Nutrition Information")
+        fruityvice_response = requests.get(
+            "https://my.smoothiefroot.com/api/fruit/" + search_on
+        )
+        st.dataframe(data=fruityvice_response.json(), use_container_width=True)
 
-# Submit order -> insert into ORDERS
+# ---------------- Submit order ----------------
 time_to_insert = st.button("Submit Order")
 
 if time_to_insert:
