@@ -46,15 +46,15 @@ if ingredients_list:
         # Look up the SEARCH_ON value for the chosen fruit
         search_on = pd_df.loc[pd_df["FRUIT_NAME"] == fruit_chosen, "SEARCH_ON"].iloc[0]
 
-        # Show what’s happening (lab requirement)
-        st.write("The search value for", fruit_chosen, "is", search_on, ".")
+        # Optional debug (commented out in the lab now)
+        # st.write("The search value for", fruit_chosen, "is", search_on, ".")
 
         # Show nutrition info using SEARCH_ON in the API call
         st.subheader(fruit_chosen + " Nutrition Information")
         fruityvice_response = requests.get(
             "https://my.smoothiefroot.com/api/fruit/" + search_on
         )
-        st.dataframe(data=fruityvice_response.json(), use_container_width=True)
+        fv_df = st.dataframe(data=fruityvice_response.json(), use_container_width=True)
 
 # ---------------- Submit order ----------------
 time_to_insert = st.button("Submit Order")
