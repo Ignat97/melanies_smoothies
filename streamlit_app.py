@@ -1,6 +1,6 @@
 # Import python packages
 import streamlit as st
-import requests                          # ← move import to the top
+import requests                          # must be at the top
 from snowflake.snowpark.functions import col
 
 # Write directly to the app
@@ -28,12 +28,11 @@ ingredients_list = st.multiselect(
 ingredients_string = ""
 
 if ingredients_list:
-    # Build ingredients string AND (per lab) call the SmoothieFroot API for each fruit
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
-        # ↓ move these two lines into the loop and use the selected fruit
+        # Per the exercise: always fetch WATERMELON regardless of selection
         smoothiefroot_response = requests.get(
-            f"https://my.smoothiefroot.com/api/fruit/{fruit_chosen}"
+            "https://my.smoothiefroot.com/api/fruit/watermelon"
         )
         st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
 
