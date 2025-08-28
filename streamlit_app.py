@@ -1,5 +1,6 @@
 # Import python packages
 import streamlit as st
+import requests                          # ← move import to the top
 from snowflake.snowpark.functions import col
 
 # Write directly to the app
@@ -11,7 +12,7 @@ st.write("The name on your Smoothie will be:", name_on_order)
 
 # Connect via Streamlit secrets
 cnx = st.connection("snowflake")
-session = cnx.session()  # <-- fix typo (snx -> cnx)
+session = cnx.session()
 
 # Get fruit options and convert to a Python list of strings
 fruits_df = session.table("smoothies.public.fruit_options").select(col("FRUIT_NAME"))
@@ -24,7 +25,17 @@ ingredients_list = st.multiselect(
 )
 
 # Always define this (even if no selection)
-ingredients_string = " ".join(ingredients_list) if ingredients_list else ""
+ingredients_string = ""
+
+if ingredients_list:
+    # Build ingredients string AND (per lab) call the SmoothieFroot API for each fruit
+    for fruit_chosen in ingredients_list:
+        ingredients_string += fruit_chosen + " "
+        # ↓ move these two lines into the loop and use the selected fruit
+        smoothiefroot_response = requests.get(
+            f"https://my.smoothiefroot.com/api/fruit/{fruit_chosen}"
+        )
+        st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
 
 # Build and run insert only when the user clicks
 time_to_insert = st.button("Submit Order")
@@ -37,13 +48,7 @@ if time_to_insert:
     else:
         my_insert_stmt = (
             "insert into smoothies.public.orders(ingredients, name_on_order) "
-            f"values ('{ingredients_string}','{name_on_order}')"
+            f"values ('{ingredients_string.strip()}','{name_on_order}')"
         )
         session.sql(my_insert_stmt).collect()
         st.success("Your Smoothie is ordered!", icon="✅")
-
-# New section to display smoothieroot nutrition information
-import requests
-smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-# st.text(smoothiefroot_response.json())
-sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
